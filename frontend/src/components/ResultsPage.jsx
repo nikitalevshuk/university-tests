@@ -1,121 +1,101 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from './ui/button';
-import { ArrowLeft, TrendingUp, TrendingDown, Minus, BarChart3, Home } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { ArrowLeft, BarChart3, CheckCircle, Calendar, Clock, User, Loader2, AlertCircle, FileText, X } from 'lucide-react';
+import { authService, testsService, apiUtils } from '../services/api';
 
 const ResultsPage = () => {
   const navigate = useNavigate();
-  const [testData, setTestData] = useState(null);
-  const [userAnswers, setUserAnswers] = useState([]);
-  const [results, setResults] = useState({});
+  const { testId } = useParams();
+  const [results, setResults] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Загрузка данных и подсчет результатов
+  // Загрузка результатов
   useEffect(() => {
-    const loadDataAndCalculateResults = async () => {
+    const loadResults = async () => {
       try {
-        // Загружаем данные теста
-        const response = await fetch('/questions.json');
-        const data = await response.json();
-        setTestData(data);
-
-        // Получаем ответы пользователя из localStorage
-        const savedAnswers = localStorage.getItem('testAnswers');
-        if (!savedAnswers) {
-          setError('Ответы на тест не найдены. Пройдите тест сначала.');
-          setLoading(false);
-          return;
-        }
-
-        const answers = JSON.parse(savedAnswers);
-        setUserAnswers(answers);
-
-        // Подсчитываем результаты по каждой шкале
-        const calculatedResults = {};
+        setLoading(true);
         
-        Object.entries(data.results).forEach(([scaleName, scaleData]) => {
-          let score = 0;
-          
-          // Подсчет баллов за положительные ответы
-          scaleData.positive.forEach(questionNumber => {
-            const answerIndex = questionNumber - 1; // Приводим к 0-индексации
-            if (answers[answerIndex] && answers[answerIndex].answer.toLowerCase() === 'да') {
-              score++;
-            }
-          });
-          
-          // Подсчет баллов за отрицательные ответы
-          scaleData.negative.forEach(questionNumber => {
-            const answerIndex = questionNumber - 1; // Приводим к 0-индексации
-            if (answers[answerIndex] && answers[answerIndex].answer.toLowerCase() === 'нет') {
-              score++;
-            }
-          });
-          
-          // Определение уровня
-          let level;
-          let levelColor;
-          let levelIcon;
-          
-          if (score > 12) {
-            level = 'высокий';
-            levelColor = 'text-red-400 bg-red-400/10 border-red-400/30';
-            levelIcon = TrendingUp;
-          } else if (score >= 6) {
-            level = 'средний';
-            levelColor = 'text-blue-400 bg-blue-400/10 border-blue-400/30';
-            levelIcon = Minus;
-          } else {
-            level = 'низкий';
-            levelColor = 'text-green-400 bg-green-400/10 border-green-400/30';
-            levelIcon = TrendingDown;
-          }
-          
-          calculatedResults[scaleName] = {
-            score,
-            level,
-            levelColor,
-            levelIcon,
-            description: scaleData.description,
-            maxPossibleScore: scaleData.positive.length + scaleData.negative.length
-          };
-        });
+        // Проверяем авторизацию
+        const currentUser = await authService.getCurrentUser();
+        setUser(currentUser);
+
+        // Загружаем результаты теста
+        const testResults = await testsService.getTestResults(testId);
+        setResults(testResults);
         
-        setResults(calculatedResults);
-        setLoading(false);
       } catch (error) {
-        console.error('Ошибка при загрузке данных или подсчете результатов:', error);
-        setError('Произошла ошибка при обработке результатов теста.');
+        console.error('Ошибка при загрузке результатов:', error);
+        
+        if (apiUtils.isAuthError(error)) {
+          navigate('/');
+        } else {
+          setError(apiUtils.formatErrorMessage(error));
+        }
+      } finally {
         setLoading(false);
       }
     };
 
-    loadDataAndCalculateResults();
-  }, []);
-
-  // Функция для форматирования названия шкалы
-  const formatScaleName = (scaleName) => {
-    return scaleName.charAt(0).toUpperCase() + scaleName.slice(1).replace('_', ' ');
-  };
+    if (testId) {
+      loadResults();
+    } else {
+      setError('ID теста не указан');
+      setLoading(false);
+    }
+  }, [testId, navigate]);
 
   // Возврат на главную страницу
   const handleGoHome = () => {
-    navigate('/');
+    navigate('/dashboard');
   };
 
-  // Повторное прохождение теста
+  // Повторное прохождение теста (если это возможно)
   const handleRetakeTest = () => {
-    localStorage.removeItem('testAnswers');
-    localStorage.removeItem('testResults');
-    navigate('/test');
+    navigate(`/test/${testId}`);
   };
+
+  // Анализ результатов
+  const analyzeResults = () => {
+    if (!results?.result?.answers) return null;
+
+    const answers = results.result.answers;
+    const totalQuestions = answers.length;
+    
+    // Подсчет ответов - теперь answers это массив строк
+    const yesCount = answers.filter(answer => answer && answer.toLowerCase() === 'да').length;
+    const noCount = answers.filter(answer => answer && answer.toLowerCase() === 'нет').length;
+    const unsureCount = answers.filter(answer => answer && answer.toLowerCase() === 'не знаю').length;
+
+    // Процентное соотношение
+    const yesPercentage = totalQuestions > 0 ? Math.round((yesCount / totalQuestions) * 100) : 0;
+    const noPercentage = totalQuestions > 0 ? Math.round((noCount / totalQuestions) * 100) : 0;
+    const unsurePercentage = totalQuestions > 0 ? Math.round((unsureCount / totalQuestions) * 100) : 0;
+
+    return {
+      totalQuestions,
+      yesCount,
+      noCount,
+      unsureCount,
+      yesPercentage,
+      noPercentage,
+      unsurePercentage
+    };
+  };
+
+  const analysis = analyzeResults();
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 flex items-center justify-center">
-        <div className="text-[#f5e8d0] text-lg">Обработка результатов...</div>
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 text-[#f5e8d0] animate-spin mx-auto mb-4" />
+          <div className="text-[#f5e8d0] text-lg">Загрузка результатов...</div>
+        </div>
       </div>
     );
   }
@@ -124,7 +104,25 @@ const ResultsPage = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 flex items-center justify-center p-4">
         <div className="text-center">
+          <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
           <div className="text-red-400 text-lg mb-4">{error}</div>
+          <Button
+            onClick={handleGoHome}
+            className="bg-[#a5f3b4] hover:bg-[#7be398] text-gray-900"
+          >
+            Вернуться на главную
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!results) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 flex items-center justify-center p-4">
+        <div className="text-center">
+          <FileText className="h-12 w-12 text-[#f5e8d0]/50 mx-auto mb-4" />
+          <div className="text-[#f5e8d0]/70 text-lg mb-4">Результаты теста не найдены</div>
           <Button
             onClick={handleGoHome}
             className="bg-[#a5f3b4] hover:bg-[#7be398] text-gray-900"
@@ -154,143 +152,264 @@ const ResultsPage = () => {
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
 
-      <div className="relative z-10 p-4 py-8">
-        {/* Заголовок */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-8"
-        >
-          <div className="flex items-center justify-center mb-4">
-            <BarChart3 className="w-8 h-8 text-[#a5f3b4] mr-3" />
-            <h1 className="text-3xl font-bold text-[#f5e8d0]">
-              Результаты тестирования
-            </h1>
-          </div>
-          <p className="text-[#f5e8d0]/70 text-lg max-w-2xl mx-auto">
-            Анализ уровня адаптации к новой социокультурной среде
-          </p>
-          <div className="w-24 h-0.5 bg-[#f5e8d0]/30 mx-auto mt-4"></div>
-        </motion.div>
+      {/* Header */}
+      <motion.header
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="relative z-10 w-full bg-black/20 backdrop-blur-sm border-b border-[#f5e8d0]/30"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            {/* Логотип/название */}
+            <div className="flex items-center">
+              <h1 className="text-xl font-bold text-[#f5e8d0]">
+                Результаты тестирования
+              </h1>
+            </div>
 
-        {/* Навигация */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-          className="flex justify-center mb-8"
-        >
-          <div className="flex gap-4">
-            <Button
-              onClick={handleGoHome}
-              className="bg-black/30 border-[#f5e8d0]/40 text-[#f5e8d0] hover:bg-[#f5e8d0]/10 hover:border-[#f5e8d0]"
-            >
-              <Home className="w-4 h-4 mr-2" />
-              На главную
-            </Button>
-            <Button
-              onClick={handleRetakeTest}
-              className="bg-[#a5f3b4] hover:bg-[#7be398] text-gray-900"
-            >
-              Пройти тест заново
-            </Button>
-          </div>
-        </motion.div>
-
-        {/* Результаты по шкалам */}
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Object.entries(results).map(([scaleName, result], index) => {
-              const IconComponent = result.levelIcon;
-              
-              return (
-                <motion.div
-                  key={scaleName}
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ 
-                    delay: 0.3 + index * 0.1, 
-                    duration: 0.5,
-                    ease: "easeOut"
-                  }}
-                  className="bg-black/20 backdrop-blur-sm rounded-2xl border border-[#f5e8d0]/30 shadow-2xl p-6 hover:scale-105 transition-transform duration-200"
-                >
-                  {/* Заголовок шкалы */}
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-semibold text-[#f5e8d0] capitalize">
-                      {formatScaleName(scaleName)}
-                    </h3>
-                    <IconComponent className="w-6 h-6 text-[#f5e8d0]/70" />
-                  </div>
-
-                  {/* Уровень и баллы */}
-                  <div className="mb-4">
-                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${result.levelColor} mb-2`}>
-                      <IconComponent className="w-4 h-4 mr-1" />
-                      {result.level} уровень
-                    </div>
-                    <div className="text-[#f5e8d0]/70 text-sm">
-                      Баллы: {result.score} из {result.maxPossibleScore}
-                    </div>
-                  </div>
-
-                  {/* Прогресс бар */}
-                  <div className="mb-4">
-                    <div className="w-full bg-[#f5e8d0]/20 rounded-full h-2">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${(result.score / result.maxPossibleScore) * 100}%` }}
-                        transition={{ delay: 0.5 + index * 0.1, duration: 0.8, ease: "easeOut" }}
-                        className={`h-2 rounded-full ${
-                          result.level === 'высокий' ? 'bg-red-400' :
-                          result.level === 'средний' ? 'bg-blue-400' : 'bg-green-400'
-                        }`}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Описание */}
-                  <div className="text-[#f5e8d0]/80 text-sm leading-relaxed">
-                    {result.description}
-                  </div>
-                </motion.div>
-              );
-            })}
+            {/* Информация о пользователе */}
+            <div className="flex items-center space-x-2 text-[#f5e8d0]/80">
+              <User className="h-4 w-4" />
+              <span className="text-sm">
+                {user ? `${user.last_name} ${user.first_name}` : 'Пользователь'}
+              </span>
+            </div>
           </div>
         </div>
+      </motion.header>
 
-        {/* Общая информация */}
+      {/* Основной контент */}
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Кнопка назад */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8"
+        >
+          <Button
+            onClick={handleGoHome}
+            className="bg-black/30 border-[#f5e8d0]/40 text-[#f5e8d0] hover:bg-[#f5e8d0]/10 hover:border-[#f5e8d0]"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Вернуться на главную
+          </Button>
+        </motion.div>
+
+        {/* Заголовок результатов */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, duration: 0.6 }}
-          className="max-w-4xl mx-auto mt-12 bg-black/20 backdrop-blur-sm rounded-2xl border border-[#f5e8d0]/30 shadow-2xl p-8"
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="text-center mb-8"
         >
-          <h3 className="text-xl font-semibold text-[#f5e8d0] mb-4 text-center">
-            Интерпретация результатов
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-            <div className="p-4 rounded-xl bg-green-400/10 border border-green-400/30">
-              <TrendingDown className="w-8 h-8 text-green-400 mx-auto mb-2" />
-              <div className="text-green-400 font-medium mb-1">Низкий уровень</div>
-              <div className="text-[#f5e8d0]/70 text-sm">Менее 6 баллов</div>
+          <div className="flex items-center justify-center mb-4">
+            <div className="p-3 bg-[#a5f3b4]/20 rounded-full mr-4">
+              <CheckCircle className="w-8 h-8 text-[#a5f3b4]" />
             </div>
-            <div className="p-4 rounded-xl bg-blue-400/10 border border-blue-400/30">
-              <Minus className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-              <div className="text-blue-400 font-medium mb-1">Средний уровень</div>
-              <div className="text-[#f5e8d0]/70 text-sm">6-12 баллов</div>
-            </div>
-            <div className="p-4 rounded-xl bg-red-400/10 border border-red-400/30">
-              <TrendingUp className="w-8 h-8 text-red-400 mx-auto mb-2" />
-              <div className="text-red-400 font-medium mb-1">Высокий уровень</div>
-              <div className="text-[#f5e8d0]/70 text-sm">Более 12 баллов</div>
+            <h2 className="text-3xl font-bold text-[#f5e8d0]">
+              Тест завершен успешно!
+            </h2>
+          </div>
+          
+          <p className="text-[#f5e8d0]/70 text-lg">
+            {results.test_title}
+          </p>
+          
+          {/* Информация о завершении */}
+          <div className="flex items-center justify-center space-x-6 mt-6 text-[#f5e8d0]/60">
+            <div className="flex items-center space-x-2">
+              <Calendar className="w-4 h-4" />
+              <span className="text-sm">
+                Завершен: {new Date(results.completed_at).toLocaleDateString('ru-RU', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </span>
             </div>
           </div>
-          <div className="mt-6 text-[#f5e8d0]/70 text-sm text-center leading-relaxed">
-            Результаты теста отражают ваш текущий уровень адаптации к новой социокультурной среде. 
-            Высокие показатели по некоторым шкалам могут указывать на области, требующие внимания и поддержки.
-          </div>
+        </motion.div>
+
+        {/* Статистика результатов */}
+        {analysis && (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+          >
+            {/* Общее количество вопросов */}
+            <Card className="bg-black/20 backdrop-blur-sm border-[#f5e8d0]/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-[#f5e8d0] text-lg flex items-center">
+                  <FileText className="w-5 h-5 mr-2" />
+                  Всего вопросов
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-[#f5e8d0] mb-1">
+                  {analysis.totalQuestions}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Положительные ответы */}
+            <Card className="bg-black/20 backdrop-blur-sm border-green-400/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-green-400 text-lg flex items-center">
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  Ответов "Да"
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-green-400 mb-1">
+                  {analysis.yesCount}
+                </div>
+                <div className="text-sm text-green-400/70">
+                  {analysis.yesPercentage}% от общего
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Отрицательные ответы */}
+            <Card className="bg-black/20 backdrop-blur-sm border-red-400/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-red-400 text-lg flex items-center">
+                  <X className="w-5 h-5 mr-2" />
+                  Ответов "Нет"
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-red-400 mb-1">
+                  {analysis.noCount}
+                </div>
+                <div className="text-sm text-red-400/70">
+                  {analysis.noPercentage}% от общего
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Неопределенные ответы */}
+            <Card className="bg-black/20 backdrop-blur-sm border-yellow-400/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-yellow-400 text-lg flex items-center">
+                  <Clock className="w-5 h-5 mr-2" />
+                  "Не знаю"
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-yellow-400 mb-1">
+                  {analysis.unsureCount}
+                </div>
+                <div className="text-sm text-yellow-400/70">
+                  {analysis.unsurePercentage}% от общего
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Визуализация результатов */}
+        {analysis && (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+            className="mb-8"
+          >
+            <Card className="bg-black/20 backdrop-blur-sm border-[#f5e8d0]/30">
+              <CardHeader>
+                <CardTitle className="text-[#f5e8d0] text-xl flex items-center">
+                  <BarChart3 className="w-6 h-6 mr-2" />
+                  Распределение ответов
+                </CardTitle>
+                <CardDescription className="text-[#f5e8d0]/60">
+                  Визуальное представление ваших ответов
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Прогресс-бары для каждого типа ответов */}
+                  <div className="space-y-4">
+                    {/* Ответы "Да" */}
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-green-400 font-medium">Ответы "Да"</span>
+                        <span className="text-green-400 text-sm">{analysis.yesCount} ({analysis.yesPercentage}%)</span>
+                      </div>
+                      <div className="w-full bg-gray-700/50 rounded-full h-3">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${analysis.yesPercentage}%` }}
+                          transition={{ duration: 1, delay: 0.8 }}
+                          className="bg-green-400 h-3 rounded-full"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Ответы "Нет" */}
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-red-400 font-medium">Ответы "Нет"</span>
+                        <span className="text-red-400 text-sm">{analysis.noCount} ({analysis.noPercentage}%)</span>
+                      </div>
+                      <div className="w-full bg-gray-700/50 rounded-full h-3">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${analysis.noPercentage}%` }}
+                          transition={{ duration: 1, delay: 1 }}
+                          className="bg-red-400 h-3 rounded-full"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Ответы "Не знаю" */}
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-yellow-400 font-medium">Ответы "Не знаю"</span>
+                        <span className="text-yellow-400 text-sm">{analysis.unsureCount} ({analysis.unsurePercentage}%)</span>
+                      </div>
+                      <div className="w-full bg-gray-700/50 rounded-full h-3">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${analysis.unsurePercentage}%` }}
+                          transition={{ duration: 1, delay: 1.2 }}
+                          className="bg-yellow-400 h-3 rounded-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Действия */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.8 }}
+          className="flex flex-col sm:flex-row gap-4 justify-center"
+        >
+          <Button
+            onClick={handleGoHome}
+            className="bg-[#a5f3b4] hover:bg-[#7be398] text-gray-900 px-8 py-3"
+          >
+            Вернуться к тестам
+          </Button>
+          
+          {/* Возможность пройти тест заново (если это предусмотрено бэкендом) */}
+          {/* <Button
+            onClick={handleRetakeTest}
+            className="bg-black/30 border-[#f5e8d0]/40 text-[#f5e8d0] hover:bg-[#f5e8d0]/10 hover:border-[#f5e8d0] px-8 py-3"
+          >
+            Пройти тест заново
+          </Button> */}
         </motion.div>
       </div>
     </div>

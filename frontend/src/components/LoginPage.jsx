@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { AlertCircle, X, Loader2, UserPlus, LogIn } from 'lucide-react';
+import { AlertCircle, Loader2, LogIn, UserPlus } from 'lucide-react';
 import { authService, apiUtils } from '../services/api';
 
-const RegistrationForm = () => {
+const LoginPage = () => {
   const navigate = useNavigate();
 
   // Проверка авторизации при загрузке компонента
@@ -39,7 +39,6 @@ const RegistrationForm = () => {
 
   const [errors, setErrors] = useState({});
   const [isFormValid, setIsFormValid] = useState(false);
-  const [showInstructionModal, setShowInstructionModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
@@ -119,11 +118,11 @@ const RegistrationForm = () => {
       }));
     }
 
-    // Валидация
+    // Валидация только для полей ввода (имена и пароль)
     let error = '';
     if (fieldName === 'password') {
       error = validatePassword(trimmedValue);
-    } else {
+    } else if (['firstName', 'lastName', 'middleName'].includes(fieldName)) {
       error = validateNameField(trimmedValue, fieldName);
     }
     
@@ -193,14 +192,14 @@ const RegistrationForm = () => {
       setIsLoading(true);
       setSubmitError('');
       
-      // Отправляем данные на сервер для регистрации
-      await authService.register(formData);
+      // Отправляем данные на сервер для авторизации
+      await authService.login(formData);
       
-      // Если регистрация успешна, показываем модальное окно с инструкцией
-      setShowInstructionModal(true);
+      // Если авторизация успешна, переходим на Dashboard
+      navigate('/dashboard');
       
     } catch (error) {
-      console.error('Ошибка при регистрации:', error);
+      console.error('Ошибка при авторизации:', error);
       
       const errorMessage = apiUtils.formatErrorMessage(error);
       setSubmitError(errorMessage);
@@ -209,16 +208,9 @@ const RegistrationForm = () => {
     }
   };
 
-  // Обработка ознакомления с инструкцией
-  const handleInstructionAcknowledged = () => {
-    setShowInstructionModal(false);
-    // Переход на главную страницу (Dashboard)
-    navigate('/dashboard');
-  };
-
-  // Закрытие модального окна
-  const handleCloseModal = () => {
-    setShowInstructionModal(false);
+  // Переход к регистрации
+  const handleGoToRegister = () => {
+    navigate('/register');
   };
 
   return (
@@ -255,14 +247,14 @@ const RegistrationForm = () => {
           >
             <div className="flex items-center justify-center mb-4">
               <div className="p-3 bg-[#a5f3b4]/20 rounded-full mr-3">
-                <UserPlus className="w-6 h-6 text-[#a5f3b4]" />
+                <LogIn className="w-6 h-6 text-[#a5f3b4]" />
               </div>
               <h1 className="text-2xl font-bold text-[#f5e8d0]">
-                Регистрация
+                Вход в систему
               </h1>
             </div>
             <p className="text-[#f5e8d0]/70 text-sm leading-relaxed">
-              Для прохождения тестирования необходимо пройти процедуру регистрации
+              Введите ваши данные для входа в систему психологического тестирования
             </p>
           </motion.div>
 
@@ -476,7 +468,7 @@ const RegistrationForm = () => {
                   disabled:opacity-50 disabled:cursor-not-allowed
                   ${errors.password ? 'border-red-400 focus:ring-red-400/20' : ''}
                 `}
-                placeholder="Придумайте пароль (минимум 6 символов)"
+                placeholder="Введите пароль"
               />
               {errors.password && (
                 <motion.div
@@ -490,7 +482,7 @@ const RegistrationForm = () => {
               )}
             </motion.div>
 
-            {/* Кнопка отправки */}
+            {/* Кнопка входа */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -514,154 +506,58 @@ const RegistrationForm = () => {
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Регистрация...
+                    Вход в систему...
                   </>
                 ) : (
                   <>
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Зарегистрироваться
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Войти
                   </>
                 )}
               </Button>
             </motion.div>
-          </form>
 
-          {/* Ссылка на логин */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.0, duration: 0.5 }}
-            className="text-center pt-6"
-          >
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[#f5e8d0]/20"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 text-[#f5e8d0]/60">
-                  или
-                </span>
-              </div>
-            </div>
-            
-            <Button
-              type="button"
-              onClick={() => navigate('/')}
-              disabled={isLoading}
-              className={`
-                w-full h-12 text-base font-medium rounded-full mt-4
-                bg-black/30 border-[#f5e8d0]/40 text-[#f5e8d0] 
-                hover:bg-[#f5e8d0]/10 hover:border-[#f5e8d0]
-                transition-all duration-150 ease-in-out
-                hover:scale-105 
-                disabled:opacity-50 disabled:cursor-not-allowed
-                shadow-lg hover:shadow-xl
-              `}
-            >
-              <LogIn className="h-4 w-4 mr-2" />
-              Уже есть аккаунт? Войти
-            </Button>
-          </motion.div>
-        </div>
-      </motion.div>
-
-      {/* Модальное окно инструкции */}
-      <AnimatePresence>
-        {showInstructionModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          >
-            {/* Блюр фон */}
+            {/* Ссылка на регистрацию */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-md"
-              onClick={handleCloseModal}
-            />
-            
-            {/* Модальное окно */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="relative w-full max-w-md bg-black/20 backdrop-blur-sm rounded-2xl border border-[#f5e8d0]/30 shadow-2xl p-8"
+              transition={{ delay: 1, duration: 0.5 }}
+              className="text-center pt-4"
             >
-              {/* Кнопка закрытия */}
-              <button
-                onClick={handleCloseModal}
-                className="absolute top-4 right-4 text-[#f5e8d0]/70 hover:text-[#f5e8d0] transition-colors duration-150"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              {/* Заголовок */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1, duration: 0.4 }}
-                className="text-center mb-6"
-              >
-                <h2 className="text-xl font-bold text-[#f5e8d0] mb-2">
-                  Регистрация успешна!
-                </h2>
-                <div className="w-16 h-0.5 bg-[#f5e8d0]/30 mx-auto"></div>
-              </motion.div>
-
-              {/* Текст инструкции */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.4 }}
-                className="mb-8"
-              >
-                <div className="text-[#f5e8d0]/80 text-sm leading-relaxed space-y-4">
-                  <p>
-                    <strong className="text-[#f5e8d0]">Добро пожаловать в систему психологического тестирования!</strong>
-                  </p>
-                  <ul className="space-y-2 pl-4">
-                    <li>• Вы успешно зарегистрированы в системе</li>
-                    <li>• На главной странице вы найдете доступные тесты</li>
-                    <li>• Ваш прогресс будет автоматически сохраняться</li>
-                    <li>• Результаты можно просмотреть после завершения</li>
-                  </ul>
-                  <p className="text-[#f5e8d0]/60 text-xs mt-4">
-                    Нажмите "Продолжить" для перехода к выбору тестов.
-                  </p>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-[#f5e8d0]/20"></div>
                 </div>
-              </motion.div>
-
-              {/* Кнопка подтверждения */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.4 }}
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 text-[#f5e8d0]/60">
+                    или
+                  </span>
+                </div>
+              </div>
+              
+              <Button
+                type="button"
+                onClick={handleGoToRegister}
+                disabled={isLoading}
+                className={`
+                  w-full h-12 text-base font-medium rounded-full mt-4
+                  bg-black/30 border-[#f5e8d0]/40 text-[#f5e8d0] 
+                  hover:bg-[#f5e8d0]/10 hover:border-[#f5e8d0]
+                  transition-all duration-150 ease-in-out
+                  hover:scale-105 
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  shadow-lg hover:shadow-xl
+                `}
               >
-                <Button
-                  onClick={handleInstructionAcknowledged}
-                  className={`
-                    w-full h-12 text-base font-medium rounded-full 
-                    bg-[#a5f3b4] hover:bg-[#7be398] text-gray-900
-                    border border-[#f5e8d0]/50
-                    transition-all duration-150 ease-in-out
-                    hover:scale-105 
-                    shadow-lg hover:shadow-xl
-                  `}
-                >
-                  Продолжить
-                </Button>
-              </motion.div>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Нет аккаунта? Зарегистрироваться
+              </Button>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </form>
+        </div>
+      </motion.div>
     </div>
   );
 };
 
-export default RegistrationForm; 
+export default LoginPage; 
