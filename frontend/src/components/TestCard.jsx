@@ -14,8 +14,9 @@ const TestCard = ({ test, status, completedDate, onClick, delay = 0 }) => {
           bgColor: 'bg-[#a5f3b4]/10',
           borderColor: 'border-[#a5f3b4]/30',
           statusText: 'Пройден',
-          buttonText: 'Посмотреть результаты',
-          buttonStyle: 'bg-[#a5f3b4]/20 hover:bg-[#a5f3b4]/30 text-[#a5f3b4] border-[#a5f3b4]/30'
+          buttonText: 'Тест пройден',
+          buttonStyle: 'bg-gray-600/20 text-gray-400 border-gray-400/30 cursor-not-allowed',
+          isDisabled: true
         };
       case 'not_started':
       default:
@@ -26,7 +27,8 @@ const TestCard = ({ test, status, completedDate, onClick, delay = 0 }) => {
           borderColor: 'border-blue-400/30',
           statusText: 'Не пройден',
           buttonText: 'Начать тест',
-          buttonStyle: 'bg-blue-400/20 hover:bg-blue-400/30 text-blue-400 border-blue-400/30'
+          buttonStyle: 'bg-blue-400/20 hover:bg-blue-400/30 text-blue-400 border-blue-400/30',
+          isDisabled: false
         };
     }
   };
@@ -34,18 +36,43 @@ const TestCard = ({ test, status, completedDate, onClick, delay = 0 }) => {
   const statusConfig = getStatusConfig();
   const StatusIcon = statusConfig.icon;
 
+  const handleClick = () => {
+    // Если тест пройден, показываем результаты вместо начала теста
+    if (status === 'completed') {
+      // Вызываем onClick только для просмотра результатов
+      onClick();
+    } else {
+      // Для непройденных тестов показываем описание
+      onClick();
+    }
+  };
+
+  const handleButtonClick = (e) => {
+    e.stopPropagation();
+    
+    // Если тест пройден, не делаем ничего (кнопка неактивна)
+    if (status === 'completed') {
+      return;
+    }
+    
+    // Для непройденных тестов вызываем onClick
+    onClick();
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
-      whileHover={{ scale: 1.02 }}
+      whileHover={{ scale: status === 'completed' ? 1 : 1.02 }}
       className={`
         bg-black/20 backdrop-blur-sm rounded-xl border ${statusConfig.borderColor}
-        hover:bg-black/30 transition-all duration-300 shadow-lg hover:shadow-xl
-        cursor-pointer relative overflow-hidden
+        ${status === 'completed' ? '' : 'hover:bg-black/30 cursor-pointer'} 
+        transition-all duration-300 shadow-lg 
+        ${status === 'completed' ? '' : 'hover:shadow-xl'}
+        relative overflow-hidden
       `}
-      onClick={onClick}
+      onClick={handleClick}
     >
       {/* Фоновый градиент */}
       <div className={`absolute inset-0 ${statusConfig.bgColor} opacity-50`} />
@@ -95,25 +122,32 @@ const TestCard = ({ test, status, completedDate, onClick, delay = 0 }) => {
 
         {/* Кнопка действия */}
         <Button
+          disabled={statusConfig.isDisabled}
           className={`
             w-full text-sm font-medium transition-all duration-200
             ${statusConfig.buttonStyle}
-            hover:scale-105 active:scale-95
+            ${statusConfig.isDisabled ? '' : 'hover:scale-105 active:scale-95'}
           `}
-          onClick={(e) => {
-            e.stopPropagation();
-            onClick();
-          }}
+          onClick={handleButtonClick}
         >
           {statusConfig.buttonText}
         </Button>
+
+        {/* Для пройденных тестов добавляем текст о просмотре результатов */}
+        {status === 'completed' && (
+          <p className="text-xs text-[#f5e8d0]/50 text-center mt-2">
+            Нажмите на карточку для просмотра результатов
+          </p>
+        )}
       </div>
 
       {/* Дополнительные визуальные эффекты */}
-      <motion.div
-        className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-        whileHover={{ opacity: 0.1 }}
-      />
+      {status !== 'completed' && (
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          whileHover={{ opacity: 0.1 }}
+        />
+      )}
     </motion.div>
   );
 };

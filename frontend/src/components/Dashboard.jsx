@@ -33,12 +33,18 @@ const Dashboard = () => {
         // Загружаем статусы тестов пользователя
         const userTestStatuses = await testsService.getUserTestsStatus();
         
+        // Временное логирование для дебага
+        console.log('Raw user test statuses from API:', userTestStatuses);
+        
         // Преобразуем статусы в объект для быстрого доступа
         const statusesMap = {};
         userTestStatuses.forEach(status => {
+          console.log('Processing status:', status); // Дебаг лог
           statusesMap[status.test_id] = status;
         });
         setTestStatuses(statusesMap);
+        
+        console.log('Final statuses map:', statusesMap); // Дебаг лог
 
         // Создаем список тестов из данных БД, используя названия из статусов
         const testsData = availableTests.map(test => {
@@ -73,13 +79,21 @@ const Dashboard = () => {
   // Функция для получения статуса теста
   const getTestStatus = (testId) => {
     const status = testStatuses[testId];
+    console.log(`Getting status for test ${testId}:`, status); // Дебаг лог
+    
     if (!status) return 'not_started';
     
-    switch (status.status) {
-      case 'COMPLETED':
+    // Нормализуем статус к нижнему регистру для правильного сравнения
+    const normalizedStatus = status.status?.toLowerCase();
+    console.log(`Normalized status for test ${testId}:`, normalizedStatus); // Дебаг лог
+    
+    switch (normalizedStatus) {
+      case 'completed':
+        console.log(`Test ${testId} is completed`); // Дебаг лог
         return 'completed';
-      case 'NOT_STARTED':
+      case 'not_started':
       default:
+        console.log(`Test ${testId} is not started`); // Дебаг лог
         return 'not_started';
     }
   };

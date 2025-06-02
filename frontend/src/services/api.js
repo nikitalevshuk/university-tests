@@ -132,6 +132,11 @@ export const testsService = {
     return api.get('/user-tests/status');
   },
 
+  // Алиас для совместимости
+  async getTestStatuses() {
+    return this.getUserTestsStatus();
+  },
+
   // Загрузка данных теста из JSON файла
   async loadTestData(filename) {
     try {

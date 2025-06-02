@@ -29,6 +29,16 @@ const TestPage = () => {
         // Получаем информацию о тесте из БД
         const testInfo = await testsService.getTestById(testId);
         
+        // Проверяем статус теста - если уже пройден, перенаправляем на результаты
+        const testStatuses = await testsService.getTestStatuses();
+        const currentTestStatus = testStatuses.find(status => status.test_id === parseInt(testId));
+        
+        if (currentTestStatus && currentTestStatus.status === 'completed') {
+          // Тест уже пройден, перенаправляем на страницу результатов
+          navigate(`/results/${testId}`, { replace: true });
+          return;
+        }
+        
         // Загружаем данные вопросов из JSON файла
         const testData = await testsService.loadTestData(testInfo.filename);
         
