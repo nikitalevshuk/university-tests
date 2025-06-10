@@ -78,12 +78,17 @@ const api = new ApiService();
 export const authService = {
   // Регистрация пользователя
   async register(userData) {
+    const courseNumber = parseInt(userData.course);
+    if (isNaN(courseNumber)) {
+      throw new Error('Некорректный номер курса');
+    }
+    
     const payload = {
       first_name: userData.firstName,
       last_name: userData.lastName,
       middle_name: userData.middleName,
       faculty: userData.faculty,
-      course: parseInt(userData.course),
+      course: courseNumber,
       password: userData.password
     };
     
@@ -92,12 +97,17 @@ export const authService = {
 
   // Авторизация пользователя
   async login(credentials) {
+    const courseNumber = parseInt(credentials.course);
+    if (isNaN(courseNumber)) {
+      throw new Error('Некорректный номер курса');
+    }
+    
     const payload = {
       first_name: credentials.firstName,
       last_name: credentials.lastName,
       middle_name: credentials.middleName,
       faculty: credentials.faculty,
-      course: parseInt(credentials.course),
+      course: courseNumber,
       password: credentials.password
     };
     
