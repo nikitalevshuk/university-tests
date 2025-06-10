@@ -33,6 +33,7 @@ async def register(
     
     Создает нового пользователя и возвращает JWT токен
     """
+    print("[DEBUG TEMPORARY LOG] register(): вход в функцию, user_data =", user_data)
     # Проверяем, не существует ли уже пользователь с таким ФИО
     existing_user = db.query(User).filter(
         User.first_name == user_data.first_name,
@@ -164,6 +165,7 @@ async def logout(response: Response):
 async def get_current_user_info(
     current_user: User = Depends(get_current_active_user)
 ):
+    print("[DEBUG TEMPORARY LOG] get_current_user_info(): вход в функцию, current_user =", current_user)
     """
     Получение информации о текущем пользователе
     
