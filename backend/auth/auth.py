@@ -155,6 +155,8 @@ def get_token_from_request(request: Request, credentials: Optional[HTTPAuthoriza
         str или None: JWT токен
     """
     print("[DEBUG TEMPORARY LOG] get_token_from_request(): поиск токена")
+    print("[DEBUG TEMPORARY LOG] get_token_from_request(): request origin =", request.headers.get("origin"))
+    print("[DEBUG TEMPORARY LOG] get_token_from_request(): request host =", request.headers.get("host"))
     
     # Сначала пытаемся получить токен из заголовка Authorization
     if credentials and credentials.credentials:

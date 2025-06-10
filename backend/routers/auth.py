@@ -78,8 +78,8 @@ async def register(
         value=f"Bearer {access_token}",
         httponly=True,
         max_age=get_token_expire_time(),
-        secure=False,  # В продакшене должно быть True для HTTPS
-        samesite="lax"
+        secure=True,  # Обязательно для SameSite=None
+        samesite="none"  # Для cross-origin requests
     )
     
     return Token(
@@ -139,9 +139,9 @@ async def login(
         key="access_token",
         value=cookie_value,
         httponly=True,
-            max_age=expire_time,
-        secure=False,  # В продакшене должно быть True для HTTPS
-        samesite="lax"
+        max_age=expire_time,
+        secure=True,  # Обязательно для SameSite=None
+        samesite="none"  # Для cross-origin requests
     )
     
     token_response = Token(

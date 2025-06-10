@@ -64,7 +64,8 @@ app.add_middleware(
     allow_origins=origins_list,
     allow_credentials=True,  # Важно для httpOnly cookies
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    allow_headers=["Accept", "Accept-Language", "Content-Language", "Content-Type", "Authorization"],
+    expose_headers=["*"],
 )
 
 # Логируем настройки CORS для дебага
