@@ -243,7 +243,7 @@ async def get_current_user(request: Request):
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    print(f"[DEBUG TEMPORARY LOG] Пользователь найден: {user['first_name']} {user['last_name']}")
+    print(f"[DEBUG TEMPORARY LOG] Пользователь найден: {user.first_name} {user.last_name}")
     return user
 
 async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
@@ -276,4 +276,23 @@ def get_token_expire_time() -> int:
     expire_seconds = ACCESS_TOKEN_EXPIRE_MINUTES * 60
     print("[DEBUG TEMPORARY LOG] get_token_expire_time(): возвращаем expire_seconds =", expire_seconds)
     
-    return expire_seconds 
+    return expire_seconds
+
+def get_user_by_id(user_id: int) -> Optional[User]:
+    """
+    Получает пользователя из БД по ID
+    
+    Args:
+        user_id: ID пользователя
+        
+    Returns:
+        User или None: Объект пользователя или None если не найден
+    """
+    from db.database import get_db
+    
+    db = next(get_db())
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        return user
+    finally:
+        db.close() 
