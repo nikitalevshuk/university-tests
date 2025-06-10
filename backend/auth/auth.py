@@ -90,24 +90,24 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     })
     
     try:
-        to_encode = data.copy()
+    to_encode = data.copy()
         print("[DEBUG TEMPORARY LOG] create_access_token(): to_encode скопировано =", to_encode)
-        
-        if expires_delta:
-            expire = datetime.utcnow() + expires_delta
-        else:
-            expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        
+    
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    
         print("[DEBUG TEMPORARY LOG] create_access_token(): время истечения =", expire)
         
-        to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire})
         print("[DEBUG TEMPORARY LOG] create_access_token(): to_encode с exp =", to_encode)
         
         print("[DEBUG TEMPORARY LOG] create_access_token(): вызываем jwt.encode")
-        encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
         print("[DEBUG TEMPORARY LOG] create_access_token(): токен создан, длина =", len(encoded_jwt))
-        
-        return encoded_jwt
+    
+    return encoded_jwt
         
     except Exception as e:
         print("[DEBUG TEMPORARY LOG] create_access_token(): исключение =", {
@@ -143,21 +143,21 @@ def authenticate_user(db: Session, first_name: str, last_name: str, middle_name:
     
     try:
         print("[DEBUG TEMPORARY LOG] authenticate_user(): выполняем запрос к БД")
-        user = db.query(User).filter(
-            User.first_name == first_name,
-            User.last_name == last_name,
-            User.middle_name == middle_name,
-            User.faculty == faculty,
-            User.course == course
-        ).first()
+    user = db.query(User).filter(
+        User.first_name == first_name,
+        User.last_name == last_name,
+        User.middle_name == middle_name,
+        User.faculty == faculty,
+        User.course == course
+    ).first()
         
         print("[DEBUG TEMPORARY LOG] authenticate_user(): результат запроса к БД =", {
             "user_found": user is not None,
             "user_id": user.id if user else None,
             "user_full_name": user.full_name if user else None
         })
-        
-        if not user:
+    
+    if not user:
             print("[DEBUG TEMPORARY LOG] authenticate_user(): пользователь не найден в БД")
             return None
         
@@ -167,8 +167,8 @@ def authenticate_user(db: Session, first_name: str, last_name: str, middle_name:
         
         if not password_valid:
             print("[DEBUG TEMPORARY LOG] authenticate_user(): неверный пароль")
-            return None
-        
+        return None
+    
         print("[DEBUG TEMPORARY LOG] authenticate_user(): аутентификация успешна, возвращаем пользователя")
         return user
         
