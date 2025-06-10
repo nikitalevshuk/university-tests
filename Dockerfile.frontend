@@ -1,0 +1,82 @@
+# Dockerfile для деплоя Frontend из корневой директории проекта
+# Предназначен для Railway и других платформ, где деплой ведется из корня репозитория
+
+# Этап 1: Сборка React приложения
+FROM node:18-alpine AS build
+
+# Метаданные
+LABEL maintainer="Psycho Tests Team"
+LABEL description="React frontend for psychological testing system (root deployment)"
+LABEL version="1.0.0"
+
+# Установка системных зависимостей
+RUN apk add --no-cache git
+
+# Создание рабочей директории
+WORKDIR /app
+
+# Копирование package.json и package-lock.json из директории frontend
+COPY frontend/package*.json ./
+
+# Установка зависимостей (включая dev зависимости для сборки)
+RUN npm ci --silent
+
+# Копирование всего кода frontend
+COPY frontend/ .
+
+# Аргумент для API URL (по умолчанию для локальной разработки)
+ARG VITE_API_BASE_URL=http://localhost:8000
+
+# Установка переменной окружения для сборки
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
+# Сборка приложения
+RUN npm run build
+
+# Этап 2: Nginx для раздачи статики
+FROM nginx:alpine
+
+# Установка curl для health check
+RUN apk add --no-cache curl
+
+# Создание пользователя для nginx
+RUN addgroup -g 1001 -S nginx-group && \
+    adduser -S -D -H -u 1001 -h /var/cache/nginx -s /sbin/nologin -G nginx-group -g nginx-group nginx-user
+
+# Копирование собранного приложения из предыдущего этапа
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Копирование конфигурации nginx для Railway (без проксирования)
+COPY frontend/nginx.conf.railway /etc/nginx/nginx.conf
+
+# Создание директории для PID файла nginx
+RUN mkdir -p /var/run/nginx && \
+    chown -R nginx-user:nginx-group /var/run/nginx && \
+    chown -R nginx-user:nginx-group /var/cache/nginx && \
+    chown -R nginx-user:nginx-group /usr/share/nginx/html && \
+    chown -R nginx-user:nginx-group /etc/nginx/conf.d
+
+# Создание временных директорий для nginx
+RUN mkdir -p /tmp/nginx/client_temp && \
+    mkdir -p /tmp/nginx/proxy_temp && \
+    mkdir -p /tmp/nginx/fastcgi_temp && \
+    mkdir -p /tmp/nginx/uwsgi_temp && \
+    mkdir -p /tmp/nginx/scgi_temp && \
+    chown -R nginx-user:nginx-group /tmp/nginx
+
+# Переключение на непривилегированного пользователя
+USER nginx-user
+
+# Экспорт порта
+EXPOSE 3000
+
+# Переменные окружения
+ENV NGINX_PORT=3000
+ENV NGINX_HOST=0.0.0.0
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3000/ || exit 1
+
+# Команда запуска nginx
+CMD ["nginx", "-g", "daemon off;"] 
