@@ -32,7 +32,7 @@ app = FastAPI(
 
 # Настройка CORS
 cors_origins = os.getenv("CORS_ORIGINS", 
-    '["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173", "https://*.vercel.app"]'
+    '["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173", "https://university-tests-pearl.vercel.app"]'
 )
 
 # Парсим строку JSON с origins
