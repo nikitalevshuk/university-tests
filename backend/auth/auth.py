@@ -154,18 +154,28 @@ def get_token_from_request(request: Request, credentials: Optional[HTTPAuthoriza
     Returns:
         str или None: JWT токен
     """
+    print("[DEBUG TEMPORARY LOG] get_token_from_request(): поиск токена")
+    
     # Сначала пытаемся получить токен из заголовка Authorization
     if credentials and credentials.credentials:
+        print("[DEBUG TEMPORARY LOG] get_token_from_request(): токен найден в заголовке Authorization")
         return credentials.credentials
     
     # Если нет в заголовке, пытаемся получить из httpOnly cookie
-    token = request.cookies.get("access_token")
-    if token:
+    cookie_token = request.cookies.get("access_token")
+    print("[DEBUG TEMPORARY LOG] get_token_from_request(): cookies =", dict(request.cookies))
+    
+    if cookie_token:
+        print("[DEBUG TEMPORARY LOG] get_token_from_request(): токен найден в cookie")
         # Убираем префикс "Bearer " если он есть
-        if token.startswith("Bearer "):
-            token = token[7:]
+        if cookie_token.startswith("Bearer "):
+            token = cookie_token[7:]
+            print("[DEBUG TEMPORARY LOG] get_token_from_request(): убран префикс Bearer")
+        else:
+            token = cookie_token
         return token
     
+    print("[DEBUG TEMPORARY LOG] get_token_from_request(): токен не найден")
     return None
 
 async def get_current_user(
@@ -187,6 +197,8 @@ async def get_current_user(
     Raises:
         HTTPException: Если токен недействителен или пользователь не найден
     """
+    print("[DEBUG TEMPORARY LOG] get_current_user(): начало выполнения")
+    
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Не удалось проверить учетные данные",
@@ -194,36 +206,52 @@ async def get_current_user(
     )
     
     # Получаем токен из запроса
+    print("[DEBUG TEMPORARY LOG] get_current_user(): получаем токен из запроса")
     token = get_token_from_request(request, credentials)
     
     if not token:
+        print("[DEBUG TEMPORARY LOG] get_current_user(): токен не найден, возвращаем 401")
         raise credentials_exception
+    
+    print("[DEBUG TEMPORARY LOG] get_current_user(): токен найден, декодируем JWT")
     
     try:
         # Декодируем JWT токен
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        print("[DEBUG TEMPORARY LOG] get_current_user(): JWT успешно декодирован, payload =", payload)
+        
         user_id_str = payload.get("sub")
         
         if user_id_str is None:
+            print("[DEBUG TEMPORARY LOG] get_current_user(): sub не найден в payload")
             raise credentials_exception
             
         # Преобразуем строку в int
         try:
             user_id = int(user_id_str)
+            print("[DEBUG TEMPORARY LOG] get_current_user(): user_id =", user_id)
         except (ValueError, TypeError):
+            print("[DEBUG TEMPORARY LOG] get_current_user(): ошибка преобразования user_id")
             raise credentials_exception
             
         token_data = TokenData(user_id=user_id)
         
-    except JWTError:
+    except JWTError as e:
+        print("[DEBUG TEMPORARY LOG] get_current_user(): ошибка декодирования JWT =", {
+            "type": type(e).__name__,
+            "message": str(e)
+        })
         raise credentials_exception
     
     # Получаем пользователя из базы данных
+    print("[DEBUG TEMPORARY LOG] get_current_user(): ищем пользователя в БД по id =", user_id)
     user = db.query(User).filter(User.id == token_data.user_id).first()
     
     if user is None:
+        print("[DEBUG TEMPORARY LOG] get_current_user(): пользователь не найден в БД")
         raise credentials_exception
     
+    print("[DEBUG TEMPORARY LOG] get_current_user(): пользователь найден =", user.full_name)
     return user
 
 async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
