@@ -111,16 +111,37 @@ export const authService = {
       password: credentials.password
     };
     
-    return api.post('/auth/login', payload);
+    const response = await api.post('/auth/login', payload);
+    
+    // Сохраняем токен в localStorage для Safari compatibility
+    if (response.access_token) {
+      localStorage.setItem('access_token', response.access_token);
+    }
+    
+    return response;
   },
 
   // Выход из системы
   async logout() {
+    // Очищаем сохраненный токен
+    localStorage.removeItem('access_token');
     return api.post('/auth/logout');
   },
 
   // Получение информации о текущем пользователе
   async getCurrentUser() {
+    // Для Safari - используем Authorization header вместо cookies
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      return api.request('/auth/me', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+    }
+    
+    // Fallback на cookies
     return api.get('/auth/me');
   }
 };

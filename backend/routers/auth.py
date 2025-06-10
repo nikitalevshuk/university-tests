@@ -78,8 +78,10 @@ async def register(
         value=f"Bearer {access_token}",
         httponly=True,
         max_age=get_token_expire_time(),
-        secure=True,  # Обязательно для SameSite=None
-        samesite="none"  # Для cross-origin requests
+        secure=True,  # ОБЯЗАТЕЛЬНО для SameSite=None
+        samesite="none",  # ЕДИНСТВЕННЫЙ способ для cross-origin
+        domain=None,  # Не ограничиваем домен
+        path="/"  # Доступно для всех путей
     )
     
     return Token(
@@ -133,6 +135,7 @@ async def login(
     )
     # Устанавливаем httpOnly cookie с токеном
     cookie_value = f"Bearer {access_token}"
+    print(f"[DEBUG TEMPORARY LOG] login(): устанавливаем cookie access_token = {cookie_value[:20]}...")
         
     expire_time = get_token_expire_time()
     response.set_cookie(
@@ -140,9 +143,13 @@ async def login(
         value=cookie_value,
         httponly=True,
         max_age=expire_time,
-        secure=True,  # Обязательно для SameSite=None
-        samesite="none"  # Для cross-origin requests
+        secure=True,  # ОБЯЗАТЕЛЬНО для SameSite=None
+        samesite="none",  # ЕДИНСТВЕННЫЙ способ для cross-origin
+        domain=None,  # Не ограничиваем домен
+        path="/"  # Доступно для всех путей
     )
+    
+    print("[DEBUG TEMPORARY LOG] login(): cookie установлен успешно")
     
     token_response = Token(
         access_token=access_token,
