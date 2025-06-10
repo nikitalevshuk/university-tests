@@ -36,9 +36,6 @@ async def get_user_tests_status(
     completed_tests = {test["test_id"]: test for test in (current_user.completed_tests or [])}
     
     # Дебаг логирование
-    print(f"User {current_user.id} completed_tests from DB:", current_user.completed_tests)
-    print(f"Processed completed_tests dict:", completed_tests)
-    print(f"Available tests:", [(test.id, test.filename) for test in available_tests])
     
     test_statuses = []
     
@@ -49,7 +46,6 @@ async def get_user_tests_status(
         if test.id in completed_tests:
             # Тест завершен
             completed_test = completed_tests[test.id]
-            print(f"Test {test.id} is COMPLETED for user {current_user.id}")
             status_obj = TestStatus(
                 test_id=test.id,
                 test_title=test_title,
@@ -59,7 +55,6 @@ async def get_user_tests_status(
             )
         else:
             # Тест не проходился
-            print(f"Test {test.id} is NOT_STARTED for user {current_user.id}")
             status_obj = TestStatus(
                 test_id=test.id,
                 test_title=test_title,
@@ -68,7 +63,6 @@ async def get_user_tests_status(
         
         test_statuses.append(status_obj)
     
-    print(f"Final test_statuses for user {current_user.id}:", [{"test_id": ts.test_id, "status": ts.status} for ts in test_statuses])
     
     return test_statuses
 

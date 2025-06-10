@@ -22,7 +22,7 @@ from models.test import Test
 def add_test():
     """Добавляет тест в базу данных"""
     try:
-        print("🔧 Добавление теста в базу данных...")
+        # print("🔧 Добавление теста в базу данных...")
         
         # Создаем сессию базы данных
         db = SessionLocal()
@@ -30,7 +30,7 @@ def add_test():
         # Проверяем есть ли уже тест
         existing_test = db.query(Test).filter(Test.filename == "questions.json").first()
         if existing_test:
-            print(f"✅ Тест уже существует: ID={existing_test.id}, filename={existing_test.filename}")
+            # print(f"✅ Тест уже существует: ID={existing_test.id}, filename={existing_test.filename}")
             return
         
         # Создаем новый тест
@@ -43,14 +43,14 @@ def add_test():
         db.commit()
         db.refresh(new_test)
         
-        print(f"✅ Тест успешно добавлен!")
-        print(f"📋 ID: {new_test.id}")
-        print(f"📋 Filename: {new_test.filename}")
-        print(f"📋 Available: {new_test.is_available}")
-        print(f"📋 Created at: {new_test.created_at}")
+        # print(f"✅ Тест успешно добавлен!")
+        # print(f"📋 ID: {new_test.id}")
+        # print(f"📋 Filename: {new_test.filename}")
+        # print(f"📋 Available: {new_test.is_available}")
+        # print(f"📋 Created at: {new_test.created_at}")
         
     except Exception as e:
-        print(f"❌ Ошибка при добавлении теста: {e}")
+        # print(f"❌ Ошибка при добавлении теста: {e}")
         sys.exit(1)
     finally:
         db.close()

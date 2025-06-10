@@ -30,7 +30,7 @@ def load_test_data(filename: str) -> Optional[Dict[str, Any]]:
     elif os.path.exists(frontend_json_path):
         json_path = frontend_json_path
     else:
-        print(f"JSON файл не найден ни в {local_json_path}, ни в {frontend_json_path}")
+        # JSON файл не найден
         return None
     
     try:
@@ -51,13 +51,13 @@ def load_test_data(filename: str) -> Optional[Dict[str, Any]]:
             return test_info
             
     except FileNotFoundError:
-        print(f"JSON файл не найден: {json_path}")
+        # JSON файл не найден
         return None
     except json.JSONDecodeError as e:
-        print(f"Ошибка при чтении JSON файла {filename}: {e}")
+        # Ошибка при чтении JSON файла
         return None
     except Exception as e:
-        print(f"Неожиданная ошибка при загрузке файла {filename}: {e}")
+        # Неожиданная ошибка при загрузке файла
         return None
     
     return None
