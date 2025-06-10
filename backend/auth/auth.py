@@ -44,7 +44,22 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         bool: True если пароли совпадают
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    print("[DEBUG TEMPORARY LOG] verify_password(): вход в функцию, аргументы =", {
+        "plain_password": "***",
+        "hashed_password_length": len(hashed_password) if hashed_password else 0,
+        "hashed_password_starts_with": hashed_password[:10] if hashed_password else "None"
+    })
+    
+    try:
+        result = pwd_context.verify(plain_password, hashed_password)
+        print("[DEBUG TEMPORARY LOG] verify_password(): результат pwd_context.verify =", result)
+        return result
+    except Exception as e:
+        print("[DEBUG TEMPORARY LOG] verify_password(): исключение =", {
+            "type": type(e).__name__,
+            "message": str(e)
+        })
+        return False
 
 def get_password_hash(password: str) -> str:
     """
@@ -69,17 +84,37 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     Returns:
         str: JWT токен
     """
-    to_encode = data.copy()
+    print("[DEBUG TEMPORARY LOG] create_access_token(): вход в функцию, аргументы =", {
+        "data": data,
+        "expires_delta": expires_delta
+    })
     
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    
-    return encoded_jwt
+    try:
+        to_encode = data.copy()
+        print("[DEBUG TEMPORARY LOG] create_access_token(): to_encode скопировано =", to_encode)
+        
+        if expires_delta:
+            expire = datetime.utcnow() + expires_delta
+        else:
+            expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        
+        print("[DEBUG TEMPORARY LOG] create_access_token(): время истечения =", expire)
+        
+        to_encode.update({"exp": expire})
+        print("[DEBUG TEMPORARY LOG] create_access_token(): to_encode с exp =", to_encode)
+        
+        print("[DEBUG TEMPORARY LOG] create_access_token(): вызываем jwt.encode")
+        encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+        print("[DEBUG TEMPORARY LOG] create_access_token(): токен создан, длина =", len(encoded_jwt))
+        
+        return encoded_jwt
+        
+    except Exception as e:
+        print("[DEBUG TEMPORARY LOG] create_access_token(): исключение =", {
+            "type": type(e).__name__,
+            "message": str(e)
+        })
+        raise e
 
 def authenticate_user(db: Session, first_name: str, last_name: str, middle_name: str, faculty, course, password: str) -> Optional[User]:
     """
@@ -97,21 +132,52 @@ def authenticate_user(db: Session, first_name: str, last_name: str, middle_name:
     Returns:
         User или None: Пользователь если аутентификация успешна
     """
-    user = db.query(User).filter(
-        User.first_name == first_name,
-        User.last_name == last_name,
-        User.middle_name == middle_name,
-        User.faculty == faculty,
-        User.course == course
-    ).first()
+    print("[DEBUG TEMPORARY LOG] authenticate_user(): вход в функцию, аргументы =", {
+        "first_name": first_name,
+        "last_name": last_name,
+        "middle_name": middle_name,
+        "faculty": faculty,
+        "course": course,
+        "password": "***"
+    })
     
-    if not user:
+    try:
+        print("[DEBUG TEMPORARY LOG] authenticate_user(): выполняем запрос к БД")
+        user = db.query(User).filter(
+            User.first_name == first_name,
+            User.last_name == last_name,
+            User.middle_name == middle_name,
+            User.faculty == faculty,
+            User.course == course
+        ).first()
+        
+        print("[DEBUG TEMPORARY LOG] authenticate_user(): результат запроса к БД =", {
+            "user_found": user is not None,
+            "user_id": user.id if user else None,
+            "user_full_name": user.full_name if user else None
+        })
+        
+        if not user:
+            print("[DEBUG TEMPORARY LOG] authenticate_user(): пользователь не найден в БД")
+            return None
+        
+        print("[DEBUG TEMPORARY LOG] authenticate_user(): вызываем verify_password")
+        password_valid = verify_password(password, user.password_hash)
+        print("[DEBUG TEMPORARY LOG] authenticate_user(): результат verify_password =", password_valid)
+        
+        if not password_valid:
+            print("[DEBUG TEMPORARY LOG] authenticate_user(): неверный пароль")
+            return None
+        
+        print("[DEBUG TEMPORARY LOG] authenticate_user(): аутентификация успешна, возвращаем пользователя")
+        return user
+        
+    except Exception as e:
+        print("[DEBUG TEMPORARY LOG] authenticate_user(): исключение =", {
+            "type": type(e).__name__,
+            "message": str(e)
+        })
         return None
-    
-    if not verify_password(password, user.password_hash):
-        return None
-    
-    return user
 
 def get_token_from_request(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = None) -> Optional[str]:
     """
@@ -220,4 +286,10 @@ def get_token_expire_time() -> int:
     Returns:
         int: Время жизни токена в секундах
     """
-    return ACCESS_TOKEN_EXPIRE_MINUTES * 60 
+    print("[DEBUG TEMPORARY LOG] get_token_expire_time(): вход в функцию")
+    print("[DEBUG TEMPORARY LOG] get_token_expire_time(): ACCESS_TOKEN_EXPIRE_MINUTES =", ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    expire_seconds = ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    print("[DEBUG TEMPORARY LOG] get_token_expire_time(): возвращаем expire_seconds =", expire_seconds)
+    
+    return expire_seconds 

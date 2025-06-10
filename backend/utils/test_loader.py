@@ -16,9 +16,22 @@ def load_test_data(filename: str) -> Optional[Dict[str, Any]]:
     Returns:
         Dict с данными теста или None если файл не найден
     """
-    # Пути к JSON файлам - они лежат в frontend/public
+    # Сначала ищем файл в текущей директории backend (для Railway)
+    current_dir = os.path.dirname(os.path.dirname(__file__))
+    local_json_path = os.path.join(current_dir, filename)
+    
+    # Потом в frontend/public (для локальной разработки)
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-    json_path = os.path.join(base_dir, 'frontend', 'public', filename)
+    frontend_json_path = os.path.join(base_dir, 'frontend', 'public', filename)
+    
+    # Определяем какой путь использовать
+    if os.path.exists(local_json_path):
+        json_path = local_json_path
+    elif os.path.exists(frontend_json_path):
+        json_path = frontend_json_path
+    else:
+        print(f"JSON файл не найден ни в {local_json_path}, ни в {frontend_json_path}")
+        return None
     
     try:
         with open(json_path, 'r', encoding='utf-8') as file:

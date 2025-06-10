@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: psycho_tests_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: psycho_tests
+      POSTGRES_USER: psycho_user
+      POSTGRES_PASSWORD: psycho_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - psycho_tests_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U psycho_user -d psycho_tests"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: psycho_tests_backend
+    restart: unless-stopped
+    environment:
+      # Database connection
+      DATABASE_URL: postgresql://psycho_user:psycho_password@postgres:5432/psycho_tests
+      
+      # JWT settings
+      SECRET_KEY: your-super-secret-jwt-key-change-in-production
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      ALGORITHM: HS256
+      
+      # Server settings
+      HOST: 0.0.0.0
+      PORT: 8000
+      DEBUG: false
+      
+      # CORS settings
+      CORS_ORIGINS: '["http://localhost:3000", "http://frontend:3000", "http://localhost", "http://127.0.0.1:3000"]'
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - psycho_tests_network
+    volumes:
+      - ./backend:/app:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # React Frontend with Nginx
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=/api
+        - VITE_APP_NAME=Психологическое тестирование
+        - VITE_DEBUG=false
+    container_name: psycho_tests_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - psycho_tests_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/nginx-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+# Networks
+networks:
+  psycho_tests_network:
+    driver: bridge
+    name: psycho_tests_network
+
+# Volumes
+volumes:
+  postgres_data:
+    driver: local
+    name: psycho_tests_postgres_data 

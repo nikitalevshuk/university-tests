@@ -74,6 +74,8 @@ class UserLogin(BaseModel):
     @validator('faculty')
     def validate_faculty(cls, v):
         """Преобразование строки в FacultyEnum"""
+        print("[DEBUG TEMPORARY LOG] UserLogin.validate_faculty(): вход в валидатор, v =", v, "type =", type(v))
+        
         if isinstance(v, str):
             faculty_mapping = {
                 "ФИБ": FacultyEnum.FIB,
@@ -83,14 +85,22 @@ class UserLogin(BaseModel):
                 "ИЭФ": FacultyEnum.IEF,
                 "ФИТУ": FacultyEnum.FITU
             }
+            print("[DEBUG TEMPORARY LOG] UserLogin.validate_faculty(): проверяем строку в mapping")
             if v not in faculty_mapping:
+                print("[DEBUG TEMPORARY LOG] UserLogin.validate_faculty(): неизвестный факультет")
                 raise ValueError(f'Неизвестный факультет: {v}')
-            return faculty_mapping[v]
+            result = faculty_mapping[v]
+            print("[DEBUG TEMPORARY LOG] UserLogin.validate_faculty(): преобразовано в enum =", result)
+            return result
+        
+        print("[DEBUG TEMPORARY LOG] UserLogin.validate_faculty(): уже enum, возвращаем как есть")
         return v
     
     @validator('course')
     def validate_course(cls, v):
         """Преобразование числа в CourseEnum"""
+        print("[DEBUG TEMPORARY LOG] UserLogin.validate_course(): вход в валидатор, v =", v, "type =", type(v))
+        
         if isinstance(v, int):
             course_mapping = {
                 1: CourseEnum.FIRST,
@@ -100,9 +110,15 @@ class UserLogin(BaseModel):
                 5: CourseEnum.FIFTH,
                 6: CourseEnum.SIXTH
             }
+            print("[DEBUG TEMPORARY LOG] UserLogin.validate_course(): проверяем число в mapping")
             if v not in course_mapping:
+                print("[DEBUG TEMPORARY LOG] UserLogin.validate_course(): неизвестный курс")
                 raise ValueError(f'Неизвестный курс: {v}')
-            return course_mapping[v]
+            result = course_mapping[v]
+            print("[DEBUG TEMPORARY LOG] UserLogin.validate_course(): преобразовано в enum =", result)
+            return result
+        
+        print("[DEBUG TEMPORARY LOG] UserLogin.validate_course(): уже enum, возвращаем как есть")
         return v
 
 class UserUpdate(BaseModel):

@@ -31,9 +31,17 @@ app = FastAPI(
 )
 
 # Настройка CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+cors_origins = os.getenv("CORS_ORIGINS", 
+    '["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173"]'
+)
+
+# Парсим строку JSON с origins
+import json
+try:
+    origins_list = json.loads(cors_origins)
+except json.JSONDecodeError:
+    # Fallback на значения по умолчанию
+    origins_list = [
         "http://localhost:3000", 
         "http://127.0.0.1:3000",
         "http://localhost:5173",  # Vite dev server
@@ -43,8 +51,15 @@ app.add_middleware(
         "http://localhost:8080",  # Webpack dev server
         "http://127.0.0.1:8080",
         "http://localhost:8000",  # Если фронтенд обращается к бэкенду на том же хосте
-        "http://127.0.0.1:8000"
-    ],
+        "http://127.0.0.1:8000",
+        # Docker контейнеры
+        "http://frontend:3000",
+        "http://backend:8000"
+    ]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins_list,
     allow_credentials=True,  # Важно для httpOnly cookies
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -74,9 +89,10 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Проверка состояния API"""
+    """Health check эндпоинт для Docker и мониторинга"""
     return {
-        "status": "healthy", 
+        "status": "healthy",
+        "service": "psycho-tests-backend",
         "message": "API работает корректно",
         "version": "2.0.0"
     }

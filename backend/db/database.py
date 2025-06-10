@@ -32,10 +32,21 @@ def get_db():
     Dependency для получения сессии базы данных.
     Автоматически закрывает сессию после использования.
     """
+    print("[DEBUG TEMPORARY LOG] get_db(): создаём сессию БД")
     db = SessionLocal()
+    print("[DEBUG TEMPORARY LOG] get_db(): сессия создана =", db)
+    
     try:
+        print("[DEBUG TEMPORARY LOG] get_db(): yielding сессию")
         yield db
+    except Exception as e:
+        print("[DEBUG TEMPORARY LOG] get_db(): исключение в сессии =", {
+            "type": type(e).__name__,
+            "message": str(e)
+        })
+        raise e
     finally:
+        print("[DEBUG TEMPORARY LOG] get_db(): закрываем сессию")
         db.close()
 
 # Функция для создания всех таблиц (используется в разработке)
