@@ -84,37 +84,20 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     Returns:
         str: JWT токен
     """
-    print("[DEBUG TEMPORARY LOG] create_access_token(): вход в функцию, аргументы =", {
-        "data": data,
-        "expires_delta": expires_delta
-    })
-    
-    try:
     to_encode = data.copy()
-        print("[DEBUG TEMPORARY LOG] create_access_token(): to_encode скопировано =", to_encode)
     
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     
-        print("[DEBUG TEMPORARY LOG] create_access_token(): время истечения =", expire)
-        
     to_encode.update({"exp": expire})
-        print("[DEBUG TEMPORARY LOG] create_access_token(): to_encode с exp =", to_encode)
         
-        print("[DEBUG TEMPORARY LOG] create_access_token(): вызываем jwt.encode")
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-        print("[DEBUG TEMPORARY LOG] create_access_token(): токен создан, длина =", len(encoded_jwt))
+
     
     return encoded_jwt
-        
-    except Exception as e:
-        print("[DEBUG TEMPORARY LOG] create_access_token(): исключение =", {
-            "type": type(e).__name__,
-            "message": str(e)
-        })
-        raise e
+
 
 def authenticate_user(db: Session, first_name: str, last_name: str, middle_name: str, faculty, course, password: str) -> Optional[User]:
     """
@@ -141,8 +124,7 @@ def authenticate_user(db: Session, first_name: str, last_name: str, middle_name:
         "password": "***"
     })
     
-    try:
-        print("[DEBUG TEMPORARY LOG] authenticate_user(): выполняем запрос к БД")
+    
     user = db.query(User).filter(
         User.first_name == first_name,
         User.last_name == last_name,
@@ -151,33 +133,15 @@ def authenticate_user(db: Session, first_name: str, last_name: str, middle_name:
         User.course == course
     ).first()
         
-        print("[DEBUG TEMPORARY LOG] authenticate_user(): результат запроса к БД =", {
-            "user_found": user is not None,
-            "user_id": user.id if user else None,
-            "user_full_name": user.full_name if user else None
-        })
-    
     if not user:
-            print("[DEBUG TEMPORARY LOG] authenticate_user(): пользователь не найден в БД")
             return None
         
-        print("[DEBUG TEMPORARY LOG] authenticate_user(): вызываем verify_password")
-        password_valid = verify_password(password, user.password_hash)
-        print("[DEBUG TEMPORARY LOG] authenticate_user(): результат verify_password =", password_valid)
+    password_valid = verify_password(password, user.password_hash)
         
-        if not password_valid:
-            print("[DEBUG TEMPORARY LOG] authenticate_user(): неверный пароль")
+    if not password_valid:
         return None
     
-        print("[DEBUG TEMPORARY LOG] authenticate_user(): аутентификация успешна, возвращаем пользователя")
-        return user
-        
-    except Exception as e:
-        print("[DEBUG TEMPORARY LOG] authenticate_user(): исключение =", {
-            "type": type(e).__name__,
-            "message": str(e)
-        })
-        return None
+    return user
 
 def get_token_from_request(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = None) -> Optional[str]:
     """
