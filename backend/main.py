@@ -54,9 +54,9 @@ except json.JSONDecodeError:
         "http://127.0.0.1:8000",
         # Docker контейнеры
         "http://frontend:3000",
-        "http://backend:8000",
-        # Vercel домены
-        "https://*.vercel.app"
+        "http://backend:8000"
+        # Vercel домены ДОЛЖНЫ быть указаны точно в переменной CORS_ORIGINS
+        # "https://*.vercel.app" НЕ РАБОТАЕТ с credentials=True!
     ]
 
 app.add_middleware(
