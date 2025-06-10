@@ -41,6 +41,7 @@ async def register(
     ).first()
     
     if existing_user:
+        print("[DEBUG TEMPORARY LOG] register(): пользователь с таким ФИО уже существует")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Пользователь с таким ФИО уже существует"
