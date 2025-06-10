@@ -32,7 +32,7 @@ app = FastAPI(
 
 # Настройка CORS
 cors_origins = os.getenv("CORS_ORIGINS", 
-    '["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173"]'
+    '["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173", "https://*.vercel.app"]'
 )
 
 # Парсим строку JSON с origins
@@ -54,7 +54,9 @@ except json.JSONDecodeError:
         "http://127.0.0.1:8000",
         # Docker контейнеры
         "http://frontend:3000",
-        "http://backend:8000"
+        "http://backend:8000",
+        # Vercel домены
+        "https://*.vercel.app"
     ]
 
 app.add_middleware(
@@ -64,6 +66,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# Логируем настройки CORS для дебага
+print(f"🌐 CORS origins configured: {origins_list}")
 
 # Регистрируем обработчики исключений
 create_exception_handlers(app)

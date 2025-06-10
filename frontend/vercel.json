@@ -4,8 +4,5 @@
       "source": "/(.*)",
       "destination": "/"
     }
-  ],
-  "env": {
-    "VITE_API_BASE_URL": "https://university-tests-production.up.railway.app"
-  }
+  ]
 } 
