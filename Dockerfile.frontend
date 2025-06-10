@@ -49,9 +49,11 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # Копирование конфигурации nginx для Railway (без проксирования)
 COPY frontend/nginx.conf.railway /etc/nginx/nginx.conf
 
-# Создание директории для PID файла nginx
+# Создание директорий для nginx и настройка прав
 RUN mkdir -p /var/run/nginx && \
+    mkdir -p /var/log/nginx && \
     chown -R nginx-user:nginx-group /var/run/nginx && \
+    chown -R nginx-user:nginx-group /var/log/nginx && \
     chown -R nginx-user:nginx-group /var/cache/nginx && \
     chown -R nginx-user:nginx-group /usr/share/nginx/html && \
     chown -R nginx-user:nginx-group /etc/nginx/conf.d
