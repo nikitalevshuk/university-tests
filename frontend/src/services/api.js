@@ -160,6 +160,18 @@ export const testsService = {
 
   // Получение статуса всех тестов для пользователя
   async getUserTestsStatus() {
+    // Для Safari - используем Authorization header вместо cookies
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      return api.request('/user-tests/status', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+    }
+    
+    // Fallback на cookies
     return api.get('/user-tests/status');
   },
 

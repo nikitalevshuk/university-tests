@@ -288,8 +288,6 @@ def get_user_by_id(user_id: int) -> Optional[User]:
     Returns:
         User или None: Объект пользователя или None если не найден
     """
-    from db.database import get_db
-    
     db = next(get_db())
     try:
         user = db.query(User).filter(User.id == user_id).first()
