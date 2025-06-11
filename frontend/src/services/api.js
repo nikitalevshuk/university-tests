@@ -215,7 +215,8 @@ export const testsService = {
       return api.request(`/user-tests/${testId}/complete`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(completionData)
       });
