@@ -98,7 +98,9 @@ const TestPage = () => {
         
         // Подготавливаем данные для отправки на сервер
         // Извлекаем только строковые ответы из объектов ответов
-        const finalAnswers = newAnswers.map(answerObj => answerObj.answer);
+        const finalAnswers = newAnswers
+          .filter(answerObj => answerObj && answerObj.answer) // Убираем undefined и пустые ответы
+          .map(answerObj => answerObj.answer);
         
         // Создаем результат теста
         const testResult = {
