@@ -209,6 +209,19 @@ export const testsService = {
 
   // Завершение теста
   async completeTest(testId, completionData) {
+    // Для Safari - используем Authorization header вместо cookies
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      return api.request(`/user-tests/${testId}/complete`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(completionData)
+      });
+    }
+    
+    // Fallback на cookies
     // completionData должен содержать поля: answers и result
     return api.post(`/user-tests/${testId}/complete`, completionData);
   },
