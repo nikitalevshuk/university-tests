@@ -229,6 +229,18 @@ export const testsService = {
 
   // Получение результатов теста
   async getTestResults(testId) {
+    // Для Safari - используем Authorization header вместо cookies
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      return api.request(`/user-tests/${testId}/results`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+    }
+    
+    // Fallback на cookies
     return api.get(`/user-tests/${testId}/results`);
   }
 };
